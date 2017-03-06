@@ -67,6 +67,13 @@ describe Vagrant::Environment do
     end
   end
 
+  describe "#gems_path" do
+    it "is set to Vagrant::Bundler defined path" do
+      instance = described_class.new
+      expect(instance.gems_path).to eq(Vagrant::Bundler.instance.plugin_gem_path)
+    end
+  end
+
   describe "#home_path" do
     it "is set to the home path given" do
       Dir.mktmpdir("vagrant-test-env-home-path-given") do |dir|
@@ -1019,6 +1026,16 @@ VF
             expect(instance.cwd.to_s).to eq(temp_dir)
             expect(instance.local_data_path.to_s).to eq("")
           end
+        end
+      end
+    end
+
+    context "with environmental variable VAGRANT_DOTFILE_PATH set with tilde" do
+      it "is set relative to the user's home directory" do
+        with_temp_env("VAGRANT_DOTFILE_PATH" => "~/.vagrant") do
+          instance = env.create_vagrant_env
+          expect(instance.cwd).to eq(env.workdir)
+          expect(instance.local_data_path.to_s).to eq(File.join(Dir.home, ".vagrant"))
         end
       end
     end

@@ -121,7 +121,7 @@ module Vagrant
       @home_path  = Util::Platform.fs_real_path(@home_path)
       @boxes_path = @home_path.join("boxes")
       @data_dir   = @home_path.join("data")
-      @gems_path  = @home_path.join("gems")
+      @gems_path  = Vagrant::Bundler.instance.plugin_gem_path
       @tmp_path   = @home_path.join("tmp")
       @machine_index_dir = @data_dir.join("machine-index")
 
@@ -160,8 +160,8 @@ module Vagrant
       # it is expanded relative to the root path. Otherwise, we use the
       # default (which is also expanded relative to the root path).
       if !root_path.nil?
-        if !(ENV["VAGRANT_DOTFILE_PATH"] or "").empty? && !opts[:child]
-          opts[:local_data_path] ||= root_path.join(ENV["VAGRANT_DOTFILE_PATH"])
+        if !ENV["VAGRANT_DOTFILE_PATH"].to_s.empty? && !opts[:child]
+          opts[:local_data_path] ||= Pathname.new(File.expand_path(ENV["VAGRANT_DOTFILE_PATH"], root_path))
         else
           opts[:local_data_path] ||= root_path.join(DEFAULT_LOCAL_DATA)
         end

@@ -18,6 +18,9 @@ that describes the current state a machine should be in, e.g. what
 packages should be installed, which services are running, and the
 contents of arbitrary files.
 
+_NOTE: The Salt provisioner is builtin to Vagrant. If the `vagrant-salt`
+plugin is installed, it should be uninstalled to ensure expected behavior._
+
 ## Masterless Quickstart
 
 What follows is a basic Vagrantfile that will get salt working
@@ -134,6 +137,9 @@ These may be used to control the output of state execution:
 * `log_level` (string) - The verbosity of the outputs. Defaults to "debug".
   Can be one of "all", "garbage", "trace", "debug", "info", or
   "warning". Requires `verbose` to be set to "true".
+
+* `verbose` (boolean) - The verbosity of the outputs. Defaults to "false".
+  Must be true for log_level taking effect and the output of the salt-commands being displayed.
 
 ## Pillar Data
 
