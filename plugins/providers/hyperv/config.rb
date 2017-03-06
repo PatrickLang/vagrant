@@ -8,7 +8,7 @@ module VagrantPlugins
       attr_accessor :memory #  Memory size in mb @return [Integer]
       attr_accessor :maxmemory # Maximal memory size in mb enables dynamical memory allocation @return [Integer]
       attr_accessor :cpus # Number of cpu's @return [Integer]
-      attr_accessor :vmname # Name that will be shoen in Hyperv Manager @return [String]
+      attr_accessor :vmname # Name that will be shown in Hyper-V Manager @return [String]
       attr_accessor :vlan_id # VLAN ID for network interface for the virtual machine. @return [Integer]
       attr_accessor :mac # MAC address for network interface for the virtual machine. @return [String]
       attr_accessor :differencing_disk # Create differencing disk instead of cloning whole VHD [Boolean]
