@@ -82,42 +82,45 @@ module VagrantPlugins
 
           switch = nil
           env[:machine].config.vm.networks.each do |type, opts|
-            next if type != :public_network && type != :private_network
+            if type == :private_network
 
-            switchToFind = opts[:bridge]
+            elsif type == :public_network
+              # TODO if switch not provided, do best effort to find external switch that's online
+              switchToFind = opts[:bridge]
 
-            # TODO - consider moving this to config.validate()
-            if switchToFind
-              puts "Looking for switch with name: #{switchToFind}"
-              switch = switches.find { |s| s["Name"].downcase == switchToFind.downcase }["Name"]
-              puts "Found switch: #{switch}"
+              # TODO - consider moving this to config.validate()
+              if switchToFind
+                puts "Looking for switch with name: #{switchToFind}"
+                switch = switches.find { |s| s["Name"].downcase == switchToFind.downcase }["Name"]
+                puts "Found switch: #{switch}"
+              end
+
+              if switch.nil?
+                if switches.length > 1
+                  env[:ui].detail(I18n.t("vagrant_hyperv.choose_switch") + "\n ")
+                  switches.each_index do |i|
+                    switch = switches[i]
+                    env[:ui].detail("#{i+1}) #{switch["Name"]}")
+                  end
+                  env[:ui].detail(" ")
+
+                  switch = nil
+                  while !switch
+                    switch = env[:ui].ask("What switch would you like to use? ")
+                    next if !switch
+                    switch = switch.to_i - 1
+                    switch = nil if switch < 0 || switch >= switches.length
+                  end
+                  switch = switches[switch]["Name"]
+                else
+                  switch = switches[0]["Name"]
+                end
+              end
             end
-            
-            # TODO - multinic: build hash of network settings 
+
+            # WIP - multinic: build XML/JSON of network settings to pass to PowerShell
           end
 
-          # TODO - if :public_network, look for an external switch that's online. If there's only one, use it
-          if switch.nil?
-            if switches.length > 1
-              env[:ui].detail(I18n.t("vagrant_hyperv.choose_switch") + "\n ")
-              switches.each_index do |i|
-                switch = switches[i]
-                env[:ui].detail("#{i+1}) #{switch["Name"]}")
-              end
-              env[:ui].detail(" ")
-
-              switch = nil
-              while !switch
-                switch = env[:ui].ask("What switch would you like to use? ")
-                next if !switch
-                switch = switch.to_i - 1
-                switch = nil if switch < 0 || switch >= switches.length
-              end
-              switch = switches[switch]["Name"]
-            else
-              switch = switches[0]["Name"]
-            end
-          end
 
           env[:ui].detail("Cloning virtual hard drive...")
           source_path = image_path.to_s
