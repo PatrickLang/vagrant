@@ -32,3 +32,12 @@ you may set. A complete reference is shown below:
   * `enable_virtualization_extensions` (boolean) - Enable virtualization extensions for the virtual CPUs.
     This allows Hyper-V to be nested and run inside another Hyper-VM VM. It requires Windows 10  - 1511 (build 10586) or newer.
     Default is not defined. This will be disabled if not set.
+
+
+Most of the typical `network` configurations are not implemented. Here are the specific steps used instead:
+ 
+ * At least one network will always be configured.
+   * If `bridge` is given, it will be used for the VM switch name
+   * If `bridge` is not given, then the provider will prompt you to choose a VM Switch to use.
+ * `private_network`, `public_network`, `ip` and `gateway` are ignored
+ * Multiple networks in a `Vagrantfile` are ignored. However, if a box with a Hyper-V VMCX file has multiple NICs - they will still be imported.

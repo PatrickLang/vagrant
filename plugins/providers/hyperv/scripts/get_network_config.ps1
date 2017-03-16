@@ -7,6 +7,8 @@ Param(
 $Dir = Split-Path $script:MyInvocation.MyCommand.Path
 . ([System.IO.Path]::Combine($Dir, "utils\write_messages.ps1"))
 
+
+# TODO - how to handle multiple NICs
 $ip_address = ""
 $vm = Get-VM -Id $VmId -ErrorAction "Stop"
 $networks = Get-VMNetworkAdapter -VM $vm

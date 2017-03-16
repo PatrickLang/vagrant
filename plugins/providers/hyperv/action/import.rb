@@ -86,13 +86,17 @@ module VagrantPlugins
 
             switchToFind = opts[:bridge]
 
+            # TODO - consider moving this to config.validate()
             if switchToFind
               puts "Looking for switch with name: #{switchToFind}"
               switch = switches.find { |s| s["Name"].downcase == switchToFind.downcase }["Name"]
               puts "Found switch: #{switch}"
             end
+            
+            # TODO - multinic: build hash of network settings 
           end
 
+          # TODO - if :public_network, look for an external switch that's online. If there's only one, use it
           if switch.nil?
             if switches.length > 1
               env[:ui].detail(I18n.t("vagrant_hyperv.choose_switch") + "\n ")
@@ -139,7 +143,7 @@ module VagrantPlugins
               dest_path:      dest_path,
               data_path:      env[:machine].data_dir.to_s.gsub("/", "\\")
           }
-          options[:switchname] = switch if switch
+          options[:switchname] = switch if switch # TODO multinic: replace with hash of network settings
           options[:memory] = memory if memory
           options[:maxmemory] = maxmemory if maxmemory
           options[:cpus] = cpus if cpus
