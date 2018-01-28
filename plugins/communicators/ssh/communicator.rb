@@ -25,6 +25,21 @@ module VagrantPlugins
       PTY_DELIM_END = "bccbb768c119429488cfd109aacea6b5-pty"
       # Marker for start of regular command output
       CMD_GARBAGE_MARKER = "41e57d38-b4f7-4e46-9c38-13873d338b86-vagrant-ssh"
+      # These are the exceptions that we retry because they represent
+      # errors that are generally fixed from a retry and don't
+      # necessarily represent immediate failure cases.
+      SSH_RETRY_EXCEPTIONS = [
+        Errno::EACCES,
+        Errno::EADDRINUSE,
+        Errno::ECONNABORTED,
+        Errno::ECONNREFUSED,
+        Errno::ECONNRESET,
+        Errno::ENETUNREACH,
+        Errno::EHOSTUNREACH,
+        Errno::EPIPE,
+        Net::SSH::Disconnect,
+        Timeout::Error
+      ]
 
       include Vagrant::Util::ANSIEscapeCodeRemover
       include Vagrant::Util::Retryable
@@ -81,6 +96,8 @@ module VagrantPlugins
               message = "Connection refused."
             rescue Vagrant::Errors::SSHConnectionReset
               message = "Connection reset."
+            rescue Vagrant::Errors::SSHConnectionAborted
+              message = "Connection aborted."
             rescue Vagrant::Errors::SSHHostDown
               message = "Host appears down."
             rescue Vagrant::Errors::SSHNoRoute
@@ -143,7 +160,7 @@ module VagrantPlugins
         # If we're already attempting to switch out the SSH key, then
         # just return that we're ready (for Machine#guest).
         @lock.synchronize do
-          return true if @inserted_key || !@machine.config.ssh.insert_key
+          return true if @inserted_key || !machine_config_ssh.insert_key
           @inserted_key = true
         end
 
@@ -332,6 +349,14 @@ module VagrantPlugins
         auth_methods << "publickey" if ssh_info[:private_key_path]
         auth_methods << "password" if ssh_info[:password]
 
+        # yanked directly from ruby's Net::SSH, but with `none` last
+        # TODO: Remove this once Vagrant has updated its dependency on Net:SSH
+        # to be > 4.1.0, which should include this fix.
+        cipher_array = Net::SSH::Transport::Algorithms::ALGORITHMS[:encryption].dup
+        if cipher_array.delete("none")
+          cipher_array.push("none")
+        end
+
         # Build the options we'll use to initiate the connection via Net::SSH
         common_connect_opts = {
           auth_methods:          auth_methods,
@@ -339,35 +364,22 @@ module VagrantPlugins
           forward_agent:         ssh_info[:forward_agent],
           send_env:              ssh_info[:forward_env],
           keys_only:             ssh_info[:keys_only],
-          paranoid:              ssh_info[:paranoid],
+          verify_host_key:       ssh_info[:verify_host_key],
           password:              ssh_info[:password],
           port:                  ssh_info[:port],
           timeout:               15,
           user_known_hosts_file: [],
           verbose:               :debug,
+          encryption:            cipher_array,
         }
 
         # Connect to SSH, giving it a few tries
         connection = nil
         begin
-          # These are the exceptions that we retry because they represent
-          # errors that are generally fixed from a retry and don't
-          # necessarily represent immediate failure cases.
-          exceptions = [
-            Errno::EACCES,
-            Errno::EADDRINUSE,
-            Errno::ECONNREFUSED,
-            Errno::ECONNRESET,
-            Errno::ENETUNREACH,
-            Errno::EHOSTUNREACH,
-            Net::SSH::Disconnect,
-            Timeout::Error
-          ]
-
           timeout = 60
 
           @logger.info("Attempting SSH connection...")
-          connection = retryable(tries: opts[:retries], on: exceptions) do
+          connection = retryable(tries: opts[:retries], on: SSH_RETRY_EXCEPTIONS) do
             Timeout.timeout(timeout) do
               begin
                 # This logger will get the Net-SSH log data for us.
@@ -426,6 +438,10 @@ module VagrantPlugins
           # This is raised if we failed to connect the max number of times
           # due to an ECONNRESET.
           raise Vagrant::Errors::SSHConnectionReset
+        rescue Errno::ECONNABORTED
+          # This is raised if we failed to connect the max number of times
+          # due to an ECONNABORTED
+          raise Vagrant::Errors::SSHConnectionAborted
         rescue Errno::EHOSTDOWN
           # This is raised if we get an ICMP DestinationUnknown error.
           raise Vagrant::Errors::SSHHostDown
@@ -458,9 +474,9 @@ module VagrantPlugins
         # Determine the shell to execute. Prefer the explicitly passed in shell
         # over the default configured shell. If we are using `sudo` then we
         # need to wrap the shell in a `sudo` call.
-        cmd = @machine.config.ssh.shell
+        cmd = machine_config_ssh.shell
         cmd = shell if shell
-        cmd = @machine.config.ssh.sudo_command.gsub("%c", cmd) if sudo
+        cmd = machine_config_ssh.sudo_command.gsub("%c", cmd) if sudo
         cmd
       end
 
@@ -482,7 +498,7 @@ module VagrantPlugins
 
         # Open the channel so we can execute or command
         channel = connection.open_channel do |ch|
-          if @machine.config.ssh.pty
+          if machine_config_ssh.pty
             ch.request_pty do |ch2, success|
               pty = success && command != ""
 
@@ -519,7 +535,7 @@ module VagrantPlugins
                   end
                 end
 
-                if block_given? && marker_found
+                if block_given? && marker_found && !data.empty?
                   yield :stdout, data
                 end
               end
@@ -540,7 +556,7 @@ module VagrantPlugins
                 end
               end
 
-              if block_given? && marker_found
+              if block_given? && marker_found && !data.empty?
                 yield :stderr, data
               end
             end
@@ -611,7 +627,7 @@ module VagrantPlugins
         begin
           keep_alive = nil
 
-          if @machine.config.ssh.keep_alive
+          if machine_config_ssh.keep_alive
             # Begin sending keep-alive packets while we wait for the script
             # to complete. This avoids connections closing on long-running
             # scripts.
@@ -687,8 +703,12 @@ module VagrantPlugins
       end
 
       def generate_environment_export(env_key, env_value)
-        template = @machine.config.ssh.export_command_template
+        template = machine_config_ssh.export_command_template
         template.sub("%ENV_KEY%", env_key).sub("%ENV_VALUE%", env_value) + "\n"
+      end
+
+      def machine_config_ssh
+        @machine.config.ssh
       end
     end
   end

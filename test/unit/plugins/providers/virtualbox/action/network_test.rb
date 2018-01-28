@@ -15,7 +15,7 @@ describe VagrantPlugins::ProviderVirtualBox::Action::Network do
 
   let(:machine) do
     iso_env.machine(iso_env.machine_names[0], :virtualbox).tap do |m|
-      m.provider.stub(driver: driver)
+      allow(m.provider).to receive(:driver).and_return(driver)
     end
   end
 
@@ -68,6 +68,20 @@ describe VagrantPlugins::ProviderVirtualBox::Action::Network do
       auto_config: true,
       interface: nil
     }])
+  end
+
+  it "raises the appropriate error when provided with an invalid IP address" do
+    guest = double("guest")
+    machine.config.vm.network 'private_network', { ip: '192.168.33.06' }
+
+    expect{ subject.call(env) }.to raise_error(Vagrant::Errors::NetworkAddressInvalid)
+  end
+
+  it "raises no invalid network error when provided with a valid IP address" do
+    guest = double("guest")
+    machine.config.vm.network 'private_network', { ip: '192.168.33.6' }
+
+    expect{ subject.call(env) }.not_to raise_error(Vagrant::Errors::NetworkAddressInvalid)
   end
 
   context "with a dhcp private network" do

@@ -64,6 +64,12 @@ module Vagrant
           # Get the extra ports we consider in use
           extra_in_use = env[:port_collision_extra_in_use] || {}
 
+          # If extras are provided as an Array (previous behavior) convert
+          # to Hash as expected for IP aliasing support
+          if extra_in_use.is_a?(Array)
+            extra_in_use = Hash[extra_in_use.map{|port| [port, Set.new(["*"])]}]
+          end
+
           # Get the remap
           remap = env[:port_collision_remap] || {}
 
@@ -112,7 +118,7 @@ module Vagrant
 
             # If the port is open (listening for TCP connections)
             in_use = is_forwarded_already(extra_in_use, host_port, host_ip) ||
-              port_checker[host_ip, host_port] ||
+              call_port_checker(port_checker, host_ip, host_port) ||
               lease_check(host_ip, host_port)
             if in_use
               if !repair || !options[:auto_correct]
@@ -131,7 +137,7 @@ module Vagrant
 
                 # If the port is in use, then we can't use this either...
                 in_use = is_forwarded_already(extra_in_use, repaired_port, host_ip) ||
-                  port_checker[host_ip, repaired_port] ||
+                  call_port_checker(port_checker, host_ip, repaired_port) ||
                   lease_check(host_ip, repaired_port)
                 if in_use
                   @logger.info("Repaired port also in use: #{repaired_port}. Trying another...")
@@ -237,10 +243,19 @@ module Vagrant
         end
 
         def port_check(host_ip, host_port)
-          # If the user hasn't specified a host_ip, his/her intention is taken to be
-          # to listen on all interfaces.
-          return is_port_open?("0.0.0.0", host_port) if host_ip.nil?
-          return is_port_open?(host_ip, host_port)
+          # If no host_ip is specified, intention taken to be list on all interfaces.
+          # If platform is windows, default back to localhost only
+          test_host_ip = host_ip || "0.0.0.0"
+          begin
+            is_port_open?(test_host_ip, host_port)
+          rescue Errno::EADDRNOTAVAIL
+            if !host_ip && test_host_ip == "0.0.0.0"
+              test_host_ip = "127.0.0.1"
+              retry
+            else
+              raise
+            end
+          end
         end
 
         def with_forwarded_ports(env)
@@ -250,6 +265,13 @@ module Vagrant
 
             yield options
           end
+        end
+
+        def call_port_checker(port_checker, host_ip, host_port)
+          call_args = [host_ip, host_port]
+          # Trim args if checker method does not support inclusion of host_ip
+          call_args = call_args.slice(call_args.size - port_checker.arity.abs, port_checker.arity.abs)
+          port_checker[*call_args]
         end
       end
     end

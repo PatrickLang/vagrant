@@ -12,6 +12,7 @@ boxes/*
 /website/.vagrant
 /website/build
 /vagrant-spec.config.rb
+test/vagrant-spec/.vagrant/
 
 # Bundler/Rubygems
 *.gem
@@ -45,3 +46,6 @@ doc/
 .ruby-gemset
 .ruby-version
 .rvmrc
+
+# Box storage for spec
+test/vagrant-spec/boxes/*.box

@@ -63,7 +63,7 @@ on this machine. Not supported on Windows guest machines.
 `false`. Not supported on Windows guest machines.
 
 * `install_type`  (stable | git | daily | testing) - Whether to install from a
-distribution's stable package manager, git tree-ish, daily ppa, or testing repository.
+distribution's stable package manager, git tree-ish, daily ppa, or testing repository. Not supported on Windows guest machines.
 
 * `install_args` (string, default: "develop") - When performing a git install, you can specify a branch, tag, or any treeish. Not supported on Windows.
 
@@ -75,7 +75,9 @@ distribution's stable package manager, git tree-ish, daily ppa, or testing repos
 * `bootstrap_options` (string) - Additional command-line options to
   pass to the bootstrap script.
 
-* `version`  (string, default: "2015.5.2") - Version of minion to be installed. Only supported on Windows guest machines.
+* `version`  (string, default: "2017.7.1") - Version of minion to be installed. Only supported on Windows guest machines.
+
+* `python_version`  (string, default: "2") - Major Python version of minion to be installed. Only valid for minion versions >= 2017.7.0. Only supported on Windows guest machines.
 
 ## Minion Options
 These only make sense when `no_minion` is `false`.
@@ -94,6 +96,8 @@ public key
 
 * `masterless`  (boolean) - Calls state.highstate in local mode. Uses `minion_id` and `pillar_data` when provided.
 
+* `salt_call_args` (array) - An array of additional command line flag arguments to be passed to the `salt-call` command when provisioning with masterless.
+
 ## Master Options
 These only make sense when `install_master` is `true`. Not supported on Windows guest machines.
 
@@ -106,6 +110,8 @@ These only make sense when `install_master` is `true`. Not supported on Windows 
 
 * `seed_master`  (dictionary) - Upload keys to master, thereby
 pre-seeding it before use. Example: `{minion_name:/path/to/key.pub}`
+
+* `salt_args` (array) - An array of additional command line flag arguments to be passed to the `salt` command when provisioning with masterless.
 
 ## Execute States
 

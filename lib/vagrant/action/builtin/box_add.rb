@@ -30,6 +30,16 @@ module Vagrant
         def call(env)
           @download_interrupted = false
 
+          unless env[:box_name].nil?
+            begin
+              if URI.parse(env[:box_name]).kind_of?(URI::HTTP)
+                env[:ui].warn(I18n.t("vagrant.box_add_url_warn"))
+              end
+            rescue URI::InvalidURIError
+              # do nothing
+            end
+          end
+
           url = Array(env[:box_url]).map do |u|
             u = u.gsub("\\", "/")
             if Util::Platform.windows? && u =~ /^[a-z]:/i
@@ -478,6 +488,7 @@ module Vagrant
             url ||= uri.opaque
             #7570 Strip leading slash left in front of drive letter by uri.path
             Util::Platform.windows? && url.gsub!(/^\/([a-zA-Z]:)/, '\1')
+            url = URI.unescape(url)
 
             begin
               File.open(url, "r") do |f|

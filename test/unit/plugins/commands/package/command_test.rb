@@ -25,7 +25,7 @@ describe VagrantPlugins::CommandPackage::Command do
   let(:action_runner) { double("action_runner") }
 
   before do
-    iso_env.stub(action_runner: action_runner)
+    allow(iso_env).to receive(:action_runner).and_return(action_runner)
   end
 
   describe "#execute" do
@@ -55,6 +55,18 @@ describe VagrantPlugins::CommandPackage::Command do
 
         it "raises machine not found error" do
           expect{ package_command.execute }.to raise_error(Vagrant::Errors::MachineNotFound)
+        end
+      end
+
+      context "with --output option" do
+
+        let(:argv){ ['--output', 'package-output-folder/default'] }
+
+        it "packages default machine inside specified folder" do
+          expect(package_command).to receive(:package_vm).with(
+            a_machine_named('default'), :output => "package-output-folder/default"
+          )
+          package_command.execute
         end
       end
     end

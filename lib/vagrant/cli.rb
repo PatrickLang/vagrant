@@ -4,12 +4,14 @@ require 'optparse'
 module Vagrant
   # Manages the command line interface to Vagrant.
   class CLI < Vagrant.plugin("2", :command)
+
     def initialize(argv, env)
       super
 
       @logger = Log4r::Logger.new("vagrant::cli")
       @main_args, @sub_command, @sub_args = split_main_and_subcommand(argv)
 
+      Util::CheckpointClient.instance.setup(env).check
       @logger.info("CLI: #{@main_args.inspect} #{@sub_command.inspect} #{@sub_args.inspect}")
     end
 
@@ -36,6 +38,8 @@ module Vagrant
       command_class = command_plugin[0].call
       @logger.debug("Invoking command class: #{command_class} #{@sub_args.inspect}")
 
+      Util::CheckpointClient.instance.display
+
       # Initialize and execute the command class, returning the exit status.
       result = 0
       begin
@@ -45,7 +49,7 @@ module Vagrant
         result = 1
       end
 
-      result = 0 if !result.is_a?(Fixnum)
+      result = 0 if !result.is_a?(Integer)
       return result
     end
 

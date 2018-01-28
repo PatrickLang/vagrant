@@ -30,7 +30,7 @@ describe "VagrantPlugins::Shell::Config" do
       expect(result["shell provisioner"]).to eq([])
     end
 
-    it "passes with fixnum args" do
+    it "passes with integer args" do
       subject.path = file_that_exists
       subject.args = 1
       subject.finalize!
@@ -112,7 +112,7 @@ describe "VagrantPlugins::Shell::Config" do
   end
 
   describe 'finalize!' do
-    it 'changes fixnum args into strings' do
+    it 'changes integer args into strings' do
       subject.path = file_that_exists
       subject.args = 1
       subject.finalize!
@@ -120,12 +120,33 @@ describe "VagrantPlugins::Shell::Config" do
       expect(subject.args).to eq '1'
     end
 
-    it 'changes fixnum args in arrays into strings' do
+    it 'changes integer args in arrays into strings' do
       subject.path = file_that_exists
       subject.args = ["string", 1, 2]
       subject.finalize!
 
       expect(subject.args).to eq ["string", '1', '2']
+    end
+
+    context "with sensitive option enabled" do
+      it 'marks environment variable values sensitive' do
+        subject.env = {"KEY1" => "VAL1", "KEY2" => "VAL2"}
+        subject.sensitive = true
+
+        expect(Vagrant::Util::CredentialScrubber).to receive(:sensitive).with("VAL1")
+        expect(Vagrant::Util::CredentialScrubber).to receive(:sensitive).with("VAL2")
+        subject.finalize!
+      end
+    end
+
+    context "with sensitive option disabled" do
+      it 'does not mark environment variable values sensitive' do
+        subject.env = {"KEY1" => "VAL1", "KEY2" => "VAL2"}
+        subject.sensitive = false
+
+        expect(Vagrant::Util::CredentialScrubber).not_to receive(:sensitive)
+        subject.finalize!
+      end
     end
   end
 end
