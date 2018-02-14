@@ -24,7 +24,7 @@ for the machine to boot and be accessible. By default this is 300 seconds.
 `config.vm.box` - This configures what [box](/docs/boxes.html) the
 machine will be brought up against. The value here should be the name
 of an installed box or a shorthand name of a box in
-[HashiCorp's Atlas](/docs/other/atlas.html).
+[HashiCorp's Vagrant Cloud](/docs/vagrant-cloud).
 
 This option requires Vagrant 1.5 or higher. You can download the latest version
 of Vagrant from the [Vagrant installers page](/downloads.html).
@@ -35,7 +35,7 @@ of Vagrant from the [Vagrant installers page](/downloads.html).
 the configured box on every `vagrant up`. If an update is found, Vagrant
 will tell the user. By default this is true. Updates will only be checked
 for boxes that properly support updates (boxes from
-[HashiCorp's Atlas](/docs/other/atlas.html)
+[HashiCorp's Vagrant Cloud](/docs/vagrant-cloud)
 or some other versioned box).
 
 <hr>
@@ -74,6 +74,7 @@ CA certificates for downloading a box directly. By default, Vagrant will
 use the Mozilla CA cert bundle.
 
 <hr>
+
 `config.vm.box_download_insecure` - If true, then SSL certificates
 from the server will not be verified. By default, if the URL is an HTTPS
 URL, then SSL certs will be verified.
@@ -88,7 +89,7 @@ all subsequent redirects. By default, redirect locations are untrusted so creden
 <hr>
 
 `config.vm.box_url` - The URL that the configured box can be found at.
-If `config.vm.box` is a shorthand to a box in [HashiCorp's Atlas](/docs/other/atlas.html)
+If `config.vm.box` is a shorthand to a box in [HashiCorp's Vagrant Cloud](/docs/vagrant-cloud)
 then this value does not need to be specified. Otherwise, it should
 point to the proper place where the box can be found if it is not
 installed.

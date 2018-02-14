@@ -66,6 +66,22 @@ module VagrantPlugins
                 break
               end
             end
+          elsif Vagrant::Util::Platform.wsl?
+            if !Vagrant::Util::Platform.wsl_windows_access?
+              @logger.error("No user Windows access defined for the Windows Subsystem for Linux. This is required for VirtualBox.")
+              raise Vagrant::Errors::WSLVirtualBoxWindowsAccessError
+            end
+            @logger.debug("Linux platform detected but executing within WSL. Locating VBoxManage.")
+            @vboxmanage_path = Vagrant::Util::Which.which("VBoxManage") || Vagrant::Util::Which.which("VBoxManage.exe")
+            if !@vboxmanage_path
+              raise Vagrant::Errors::VBoxManageNotFoundWSLError
+            end
+          end
+
+          if Vagrant::Util::Platform.windows? && Vagrant::Util::Platform.windows_hyperv_enabled?
+            @logger.error("Virtualbox and Hyper-V cannot be used together at the same time on Windows and will result in a system crash.")
+
+            raise Vagrant::Errors::HypervVirtualBoxError
           end
 
           # Fall back to hoping for the PATH to work out

@@ -16,12 +16,13 @@ module VagrantPlugins
                 hostnamectl set-hostname '#{basename}'
               fi
 
-              # Remove comments and blank lines from /etc/hosts
-              sed -i'' -e 's/#.*$//' -e '/^$/d' /etc/hosts
-
               # Prepend ourselves to /etc/hosts
               grep -w '#{name}' /etc/hosts || {
-                sed -i'' '1i 127.0.0.1\\t#{name}\\t#{basename}' /etc/hosts
+                if grep -w '^127\\.0\\.1\\.1' /etc/hosts ; then
+                  sed -i'' 's/^127\\.0\\.1\\.1\\s.*$/127.0.1.1\\t#{name}\\t#{basename}/' /etc/hosts
+                else
+                  sed -i'' '1i 127.0.1.1\\t#{name}\\t#{basename}' /etc/hosts
+                fi
               }
 
               # Update mailname
@@ -34,6 +35,10 @@ module VagrantPlugins
 
               if test -f /etc/init.d/hostname.sh; then
                 /etc/init.d/hostname.sh start || true
+              fi
+              if test -x /sbin/dhclient ; then
+                /sbin/dhclient -r
+                /sbin/dhclient -nw
               fi
             EOH
           end

@@ -1,7 +1,8 @@
 require "vagrant/shared_helpers"
 
-require 'rubygems'
-require 'log4r'
+require "rubygems"
+require "log4r"
+require "vagrant/util"
 
 # Enable logging if it is requested. We do this before
 # anything else so that we can setup the output before
@@ -41,6 +42,14 @@ if ENV["VAGRANT_LOG"] && ENV["VAGRANT_LOG"] != ""
     logger = Log4r::Logger.new("vagrant")
     logger.outputters = Log4r::Outputter.stderr
     logger.level = level
+    base_formatter = Log4r::BasicFormatter.new
+    if ENV["VAGRANT_LOG_TIMESTAMP"]
+      base_formatter = Log4r::PatternFormatter.new(
+        pattern: "%d [%5l] %m",
+        date_pattern: "%F %T"
+      )
+    end
+    Log4r::Outputter.stderr.formatter = Vagrant::Util::LoggingFormatter.new(base_formatter)
     logger = nil
   end
 end
@@ -63,7 +72,8 @@ global_logger.info("Vagrant version: #{Vagrant::VERSION}")
 global_logger.info("Ruby version: #{RUBY_VERSION}")
 global_logger.info("RubyGems version: #{Gem::VERSION}")
 ENV.each do |k, v|
-  global_logger.info("#{k}=#{v.inspect}") if k =~ /^VAGRANT_/
+  next if k.start_with?("VAGRANT_OLD")
+  global_logger.info("#{k}=#{v.inspect}") if k.start_with?("VAGRANT_")
 end
 
 # We need these components always so instead of an autoload we
@@ -226,7 +236,9 @@ module Vagrant
       ENV.each do |k,v|
         if k.start_with?("VAGRANT_OLD_ENV")
           key = k.sub(/^VAGRANT_OLD_ENV_/, "")
-          h[key] = v
+          if !key.empty?
+            h[key] = v
+          end
         end
       end
     end
@@ -240,6 +252,12 @@ if I18n.config.respond_to?(:enforce_available_locales=)
   # Make sure only available locales are used. This will be the default in the
   # future but we need this to silence a deprecation warning from 0.6.9
   I18n.config.enforce_available_locales = true
+end
+
+if Vagrant.enable_resolv_replace
+  global_logger.info("resolv replacement has been enabled!")
+else
+  global_logger.warn("resolv replacement has not been enabled!")
 end
 
 # Setup the plugin manager and load any defined plugins
@@ -318,7 +336,7 @@ if Vagrant.plugins_enabled?
               global_logger.debug("Loading plugin `#{plugin_name}` with slash require: `#{plugin_slash}`")
               require plugin_slash
             rescue LoadError, Gem::LoadError
-              raise load_error
+              global_logger.warn("Failed to load plugin `#{plugin_name}`. Assuming library and moving on.")
             end
           end
         end

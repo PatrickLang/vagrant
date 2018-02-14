@@ -93,6 +93,8 @@ Vagrant.configure("2") do |config|
 end
 ```
 
+~> `puppet` need to be installed in the guest vm.
+
 By default, Vagrant will configure Puppet to look for manifests in the
 "manifests" folder relative to the project root, and will use the
 "default.pp" manifest as an entry-point. This means, if your directory
@@ -162,7 +164,7 @@ The default manifest is the environment's `manifests` directory.
 If the environment has an `environment.conf` the manifest path is parsed
 from there. Relative paths are assumed to be relative to the directory of
 the environment. If the manifest setting in `environment.conf` use
-the Puppet variables `$codedir` or `$environment` they are resoled to
+the Puppet variables `$codedir` or `$environment` they are resolved to
 the parent directory of `environment_path` and `environment` respectively.
 
 ## Modules
